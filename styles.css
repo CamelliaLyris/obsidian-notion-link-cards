@@ -1,0 +1,37 @@
+.nlc-card { display:flex; width:100%; min-height:160px; border:1px solid var(--background-modifier-border); border-radius:14px; overflow:hidden; background:var(--background-secondary); color:var(--text-normal)!important; text-decoration:none!important; box-shadow:none; transition:border-color .15s; }
+.nlc-card:hover { border-color:var(--interactive-accent); }
+.nlc-card .nlc-cover { display:block; width:26%; min-width:130px; max-width:280px; object-fit:cover; margin:0; align-self:stretch; }
+.nlc-body { display:flex; flex:1; flex-direction:column; gap:7px; min-width:0; padding:22px 28px; }
+.nlc-site { font-size:12px; color:var(--text-muted); }
+.nlc-title { font-size:1.15em; font-weight:600; line-height:1.4; overflow-wrap:anywhere; }
+.nlc-description { margin:0!important; line-height:1.55; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.nlc-url { color:var(--text-muted); font-size:.9em; margin-top:auto; padding-top:12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.nlc-field { display:flex; flex-direction:column; gap:8px; margin:14px 0; }.nlc-field input,.nlc-field textarea { width:100%; }.nlc-field textarea { min-height:95px; }
+.nlc-embed {
+  width:100%; box-sizing:border-box; margin:12px 0; padding:0;
+  overflow:hidden; border:1px solid var(--background-modifier-border);
+  border-radius:14px; background:var(--background-primary);
+  box-shadow:0 2px 8px rgb(0 0 0 / 4%);
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+.nlc-embed:focus-within { border-color:var(--interactive-accent); }
+.nlc-embed iframe { display:block; width:100%; max-width:100%; border:0; margin:0; background:transparent; }
+/* Use the provider's compact player (height=66), with its required 86px frame. */
+.nlc-embed.nlc-embed-music,
+.theme-dark .nlc-embed.nlc-embed-music,
+.nlc-embed.nlc-embed-music:hover {
+  max-width:none; margin:8px 0; padding:0; border:0; border-radius:0;
+  background:transparent; box-shadow:none; color-scheme:light;
+  min-height:0; overflow:visible;
+}
+.nlc-embed.nlc-embed-music iframe {
+  height:86px !important; min-height:86px !important; max-height:86px !important;
+  padding:0; border:0; border-radius:0; box-shadow:none;
+}
+.nlc-embed-video { background:#101114; }
+.nlc-embed-video iframe { aspect-ratio:16/9; height:auto; }
+.theme-dark .nlc-embed { box-shadow:0 3px 14px rgb(0 0 0 / 16%); }
+@media(hover:hover) { .nlc-embed:hover { border-color:var(--text-faint); box-shadow:0 4px 16px rgb(0 0 0 / 8%); } }
+@media(max-width:550px) { .nlc-embed { border-radius:10px; margin:8px 0; } }
+@media(prefers-reduced-motion:reduce) { .nlc-embed {transition:none;} }
+@media(max-width:550px) { .nlc-body {padding:14px;}.nlc-card .nlc-cover {min-width:90px;width:28%;}.nlc-description {-webkit-line-clamp:2;} }

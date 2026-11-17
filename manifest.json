@@ -1,0 +1,9 @@
+{
+  "id": "notion-link-cards",
+  "name": "Notion 链接卡片",
+  "version": "1.0.3",
+  "minAppVersion": "1.4.0",
+  "description": "粘贴链接时选择 URL、标题链接、书签卡片或嵌入，本地保存卡片信息与封面。",
+  "author": "Afool",
+  "isDesktopOnly": false
+}
