@@ -39,6 +39,9 @@ class Settings extends PluginSettingTab {
 module.exports = class NotionLinkCards extends Plugin {
   async onload() {
     this.options = { ...DEFAULTS, ...await this.loadData() }; this.pending = new Map();
+    this.register(() => this.closePasteMenu?.());
+    this.registerEvent(this.app.workspace.on('editor-change', () => { if (this.pasteSnapshot?.editor.getValue() !== this.pasteSnapshot?.text) this.closePasteMenu?.(); }));
+    this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.closePasteMenu?.()));
     this.addSettingTab(new Settings(this.app, this));
     this.registerMarkdownCodeBlockProcessor('link-card', (source, el, ctx) => this.render(source, el, ctx));
     this.registerEvent(this.app.workspace.on('editor-paste', (event, editor, view) => {
@@ -52,15 +55,45 @@ module.exports = class NotionLinkCards extends Plugin {
       const original = event.clipboardData.getData('text/plain').trim();
       event.preventDefault(); const from = editor.getCursor(); editor.replaceSelection(original); const to = editor.getCursor();
       const replace = this.replacement(editor, view, from, to, original);
+      this.closePasteMenu?.();
       const menu = new Menu();
       menu.addItem(i => i.setTitle('URL（保留原链接）').setIcon('link').onClick(()=>{}));
       menu.addItem(i => i.setTitle('提及（标题链接）').setIcon('at-sign').onClick(()=>this.convert(url,'mention',replace)));
       menu.addItem(i => i.setTitle('书签（封面卡片）').setIcon('bookmark').onClick(()=>this.convert(url,'bookmark',replace)));
       menu.addItem(i => i.setTitle('嵌入').setIcon('panel-top').onClick(()=>this.convert(url,'embed',replace)));
-      const rect = editor.containerEl?.getBoundingClientRect?.() || this.app.workspace.containerEl.getBoundingClientRect(); menu.showAtPosition({ x: rect.left + Math.min(rect.width / 2, 320), y: rect.top + 80 });
+      const doc = (editor.containerEl || view.containerEl || this.app.workspace.containerEl).ownerDocument;
+      const win = doc.defaultView, snapshot = editor.getValue(), path = view.file?.path;
+      this.pasteSnapshot = { editor, text: snapshot };
+      let frame, closed = false, shown = false;
+      const cleanup = () => { closed = true; win.cancelAnimationFrame(frame); doc.removeEventListener('scroll', onScroll, true); win.removeEventListener('resize', close); if (this.closePasteMenu === close) { this.closePasteMenu = null; this.pasteSnapshot = null; } };
+      const close = () => { if (closed) return; cleanup(); menu.hide(); };
+      const onScroll = e => { if (shown && !e.target?.closest?.('.menu')) close(); };
+      this.closePasteMenu = close; menu.onHide?.(cleanup);
+      doc.addEventListener('scroll', onScroll, true); win.addEventListener('resize', close);
+      // Wait for the pasted text to wrap and the editor to scroll the caret into view.
+      frame = win.requestAnimationFrame(() => {
+        if (closed) return;
+        if (view.file?.path !== path || editor.getValue() !== snapshot) { close(); return; }
+        menu.showAtPosition(this.pasteMenuPosition(editor, view, to));
+        shown = true;
+      });
     }));
     this.addCommand({ id: 'insert-card', name: '插入链接卡片', editorCallback: (editor, view) => { const from=editor.getCursor('from'), to=editor.getCursor('to'), original=editor.getSelection(), replace=this.replacement(editor,view,from,to,original); new CardModal(this,{url:singleURL(original)||''},card=>replace(block(card),true)).open(); } });
     this.addCommand({ id: 'convert-url', name: '将所选链接转为书签卡片', editorCallback: (editor,view)=>{ const original=editor.getSelection(), url=singleURL(original); if (!url) { new Notice('请先选中完整的 HTTP(S) 链接'); return; } this.convert(url,'bookmark',this.replacement(editor,view,editor.getCursor('from'),editor.getCursor('to'),original)); } });
+  }
+  pasteMenuPosition(editor, view, pos) {
+    const container = editor.containerEl || view.containerEl || this.app.workspace.containerEl;
+    const doc = container.ownerDocument, win = doc.defaultView;
+    let rect;
+    try { rect = editor.cm?.coordsAtPos(editor.posToOffset(pos)); } catch (_) {}
+    if (!rect) { try { rect = editor.coordsAtPos?.(pos); } catch (_) {} }
+    if (!rect) {
+      const selection = doc.getSelection();
+      if (selection?.rangeCount && container.contains(selection.focusNode)) rect = selection.getRangeAt(0).getBoundingClientRect();
+    }
+    if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.bottom)) rect = container.querySelector?.('.cm-cursor')?.getBoundingClientRect() || container.getBoundingClientRect();
+    const margin = 8, height = 180;
+    return { x: Math.max(margin, Math.min(rect.left, win.innerWidth - 260 - margin)), y: Math.max(margin, rect.bottom + height + margin > win.innerHeight ? rect.top - height : rect.bottom + 6) };
   }
   replacement(editor, view, from, to, original) {
     const path = view.file?.path, snapshot = editor.getValue();
